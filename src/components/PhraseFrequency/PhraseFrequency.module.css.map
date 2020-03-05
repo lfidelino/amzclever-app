@@ -1,0 +1,9 @@
+{
+    "version": 3,
+    "mappings": "AAAA,AAAA,UAAU,CAAC;EACT,SAAS,EAAE,IAAI;CAChB;;AAED,AAAA,WAAW,CAAC;EACV,YAAY,EAAE,KAAK;CACpB",
+    "sources": [
+        "PhraseFrequency.module.scss"
+    ],
+    "names": [],
+    "file": "PhraseFrequency.module.css"
+}
