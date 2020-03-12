@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import NavigationBar from './NavigationBar/NavigationBar';
 import styles from './Layout.module.css';
 
 
@@ -7,9 +8,9 @@ function Layout(props) {
   const { children } = props;
   return (
     <div className={styles.Layout}>
-      HEADER
-      {children}
-      FOOTER
+      <NavigationBar />
+      <div className={styles.Children}>{children}</div>
+      {/* FOOTER */}
     </div>
   );
 }

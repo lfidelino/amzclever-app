@@ -1,0 +1,8 @@
+.Collapse {
+  font-size: 1.5rem;
+}
+
+.NavDropdown:active {
+  background-color: pink;
+}
+/*# sourceMappingURL=NavigationBar.module.css.map */
