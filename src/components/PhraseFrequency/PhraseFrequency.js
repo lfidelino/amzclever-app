@@ -8,6 +8,7 @@ import calculateHandler from './calculateHandler';
 function PhraseFrequency() {
   const [calculating, setCalculating] = useState(false);
   const input = useRef();
+  const proxyText = useRef();
 
   useEffect(() => {
     input.current.focus();
@@ -15,7 +16,8 @@ function PhraseFrequency() {
 
   useEffect(() => {
     if (calculating) {
-      calculateHandler(input.current.value);
+      calculateHandler(input.current.value, proxyText.current.value);
+      console.log();
       setCalculating(false);
     }
   }, [calculating]);
@@ -33,6 +35,7 @@ function PhraseFrequency() {
           <span className={styles.ButtonText}>{calculating ? 'Calculating...' : 'Calculate'}</span>
           <i className="fas fa-calculator" />
         </Button>
+        <Form.Control className={styles.ProxyText} size="sm" type="text" ref={proxyText} />
       </Form.Group>
     </Container>
   );

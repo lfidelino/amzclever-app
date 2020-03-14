@@ -1,9 +1,13 @@
-/* eslint-disable guard-for-in */
+/* eslint-disable no-underscore-dangle */
 /* eslint-disable no-restricted-syntax */
+/* eslint-disable guard-for-in */
 const _ = require('lodash');
-const XLSX = require('xlsx');
+const exceljs = require('exceljs');
 const moment = require('moment');
+const FileSaver = require('file-saver');
 
+//* Create array of objects data
+// #region
 const getRows = (input) => {
   let rows = input.split('\n'); //* Split input by row
   rows = _.compact(rows); //* Remove empty elements from array, if any
@@ -16,7 +20,8 @@ const getRows = (input) => {
 const getPhrases = (words) => {
   const phrases = [];
 
-  for (let i = 0; i < words.length; i += 1) { //* Iterate over each row
+  for (let i = 0; i < words.length; i += 1) {
+    //* Iterate over each row
     let phrase = words[i].trim();
     phrases.push(phrase); //* Add current single word to phrase
 
@@ -29,7 +34,7 @@ const getPhrases = (words) => {
   return phrases;
 };
 
-const getOutputObj = (headers, rows) => {
+const getDataAOO = (headers, rows) => {
   const output = [];
 
   _.forEach(rows, (row) => {
@@ -47,7 +52,7 @@ const getOutputObj = (headers, rows) => {
       const index = _.findIndex(output, (curr) => curr[headers[0]] === phrase);
 
       if (index === -1) {
-      //* If phrase isn't in output
+        //* If phrase isn't in output
         const obj = {};
         for (let i = 0; i < headers.length; i += 1) {
           if (i === 0) {
@@ -61,7 +66,7 @@ const getOutputObj = (headers, rows) => {
 
         output.push(obj);
       } else {
-      //* If phrase is in output
+        //* If phrase is in output
         for (const prop in output[index]) {
           if (prop !== headers[0] && prop !== headers[1]) {
             output[index][prop] += parseFloat(rowObj[prop]);
@@ -73,122 +78,106 @@ const getOutputObj = (headers, rows) => {
 
   return output;
 };
+// #endregion
 
-const addFormulas = (ws) => {
-  const outputWS = ws;
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  const colCount = range.e.c;
-
-  for (let R = range.s.r; R <= range.e.r; R += 1) {
-    let cellAddress = { c: colCount + 1, r: R }; //* CTR
-    let cellRef = XLSX.utils.encode_cell(cellAddress);
-    outputWS[cellRef] = {
-      t: 'n',
-      f: `IFERROR(D${R + 1}/C${R + 1}, "NA")`,
-      z: '0.00%',
-    };
-
-    cellAddress = { c: colCount + 2, r: R }; //* 7 Day ACoS
-    cellRef = XLSX.utils.encode_cell(cellAddress);
-    outputWS[cellRef] = {
-      t: 'n',
-      f: `IFERROR(E${R + 1}/F${R + 1}, 9)`,
-      z: '0.00%',
-    };
-
-    cellAddress = { c: colCount + 3, r: R }; //* CPC
-    cellRef = XLSX.utils.encode_cell(cellAddress);
-    outputWS[cellRef] = {
-      t: 'n',
-      f: `IFERROR(E${R + 1}/D${R + 1}, "NA")`,
-      z: '$0.00',
-    };
-
-    cellAddress = { c: colCount + 4, r: R }; //* 7 Day CVR
-    cellRef = XLSX.utils.encode_cell(cellAddress);
-    outputWS[cellRef] = {
-      t: 'n',
-      f: `IFERROR(G${R + 1}/D${R + 1}, 0)`,
-      z: '0.00%',
-    };
-
-    outputWS['!ref'] = `A1:${cellRef}`;
-  }
-  return outputWS;
+//* Add rows to sheet
+const addRows = (sheet, dataAOO) => {
+  const newSheet = sheet;
+  _.forEach(dataAOO, (obj, i) => {
+    const row = [];
+    _.forEach(obj, (val) => {
+      row.push(val);
+    });
+    row.push({ formula: `=IFERROR(D${i + 2}/C${i + 2},"NA")`, numFmt: '0.00%' });
+    row.push({ formula: `=IFERROR(E${i + 2}/F${i + 2},9)`, numFmt: '0.00%' });
+    row.push({ formula: `=IFERROR(E${i + 2}/D${i + 2},"NA")`, numFmt: '$0.00' });
+    row.push({ formula: `=IFERROR(G${i + 2}/D${i + 2},0)`, style: { numFmt: '0.00%' } });
+    newSheet.addRow(row);
+  });
+  return newSheet;
 };
 
-const addHeaders = (ws) => {
-  const outputWS = ws;
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  const colCount = range.e.c;
+const formatCells = (sheet) => {
+  const newSheet = sheet;
+  _.forEach(newSheet._rows, (row, i) => {
+    _.forEach(row._cells, (cell, j) => {
+      const currCell = cell;
+      if (i === 0) {
+        currCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        currCell.font = { bold: true };
+        currCell.numFmt = '@';
+        if (j === 0) {
+          currCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD8E4BC' } };
+          currCell.numFmt = '@';
+        } else if (j < row._cells.length - 4) {
+          currCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
+        } else {
+          currCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB7DEE8' } };
+        }
+      } else if (j === 0) {
+        currCell.numFmt = '@';
+        currCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEBF1DE' } };
+      } else if (j === row._cells.length - 2) {
+        currCell.numFmt = '0.00;(-[Red]0.00)';
+        currCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFdaeef3' } };
+      } else if (j >= row._cells.length - 4) {
+        currCell.numFmt = '0.00%;(-[Red]0.00%)';
+        currCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFdaeef3' } };
+      } else {
+        currCell.value = parseFloat(cell.value.toString());
+        if (cell.value % 1 !== 0) {
+          currCell.numFmt = '0.00;(-[Red]0.00)';
+        }
+      }
+    });
+  });
 
-  let cellAddress = { c: colCount - 3, r: 0 }; //* CTR
-  let cellRef = XLSX.utils.encode_cell(cellAddress);
-  outputWS[cellRef] = {
-    t: 's',
-    v: 'CTR',
+  _.forEach(newSheet._columns, (col, i) => {
+    const currCol = col;
+    currCol.width = i === 0 ? 50 : 12;
+  });
+
+
+  newSheet.autoFilter = {
+    from: 'A1',
+    to: {
+      row: 1,
+      column: newSheet._rows[0]._cells.length,
+    },
   };
 
-  cellAddress = { c: colCount - 2, r: 0 }; //* 7 Day ACoS
-  cellRef = XLSX.utils.encode_cell(cellAddress);
-  outputWS[cellRef] = {
-    t: 's',
-    v: 'ACoS',
-  };
-
-  cellAddress = { c: colCount - 1, r: 0 }; //* CPC
-  cellRef = XLSX.utils.encode_cell(cellAddress);
-  outputWS[cellRef] = {
-    t: 's',
-    v: 'CPC',
-  };
-
-  cellAddress = { c: colCount, r: 0 }; //* 7 Day CVR
-  cellRef = XLSX.utils.encode_cell(cellAddress);
-  outputWS[cellRef] = {
-    t: 's',
-    v: 'CVR',
-  };
-
-  return outputWS;
+  newSheet.views = [
+    {
+      state: 'frozen',
+      ySplit: 1,
+    },
+  ];
+  return newSheet;
 };
 
-const calculateHandler = (input) => {
-  const headers = _.map(input.split('\n')[0].split('\t'), (header) => _.replace(_.replace(_.replace(_.replace(header.trim(), 'Sum of ', ''), '7 Day', ''), '7 day ', ''), 'Total ', '')); //* Get headers
+const calculateHandler = (input, proxyText) => {
+  const headers = _.map(
+    input.split('\n')[0].split('\t'),
+    (header) => header.trim(),
+  ); //* Get headers
   headers.splice(1, 0, 'Length'); //* Add length to second column
 
-  const rows = getRows(_.replace(input, / +/g, ' '));
-  const outputObj = getOutputObj(headers, rows);
+  const rows = getRows(_.replace(_.replace(input, / +/g, ' '), /[^\w\s]/gi, proxyText));
+  const dataAOO = getDataAOO(headers, rows);
 
-  const wb = XLSX.utils.book_new();
-  let ws = XLSX.utils.json_to_sheet(outputObj);
+  const workbook = new exceljs.Workbook();
+  workbook.creator = 'AMZClever';
+  workbook.calcProperties.fullCalcOnLoad = true;
 
-  const objectMaxLength = [];
-  for (let i = 0; i < outputObj.length; i += 1) {
-    const value = Object.values(outputObj[i]);
-    for (let j = 0; j < value.length; j += 1) {
-      if (typeof value[j] === 'number') {
-        objectMaxLength[j] = 15;
-      } else {
-        objectMaxLength[j] = objectMaxLength[j] >= value[j].length
-          ? objectMaxLength[j]
-          : value[j].length;
-      }
-    }
-  }
+  let sheet = workbook.addWorksheet('Phrase Frequency');
+  sheet.addRow([...headers, 'CTR', '7 Day ACoS', 'CPC', '7 Day CVR']);
+  sheet = addRows(sheet, dataAOO);
+  sheet = formatCells(sheet);
 
-  ws['!cols'] = [];
-  for (const length of objectMaxLength) {
-    ws['!cols'].push({ width: length });
-  }
-
-  ws = addFormulas(ws);
-  ws = addHeaders(ws);
-
-  ws['!autofilter'] = { ref: ws['!ref'] };
-
-  XLSX.utils.book_append_sheet(wb, ws, 'Phrase Frequency');
-  XLSX.writeFile(wb, `Phrase Frequency ${moment().format('MMDDYY')}.xlsx`);
+  workbook.xlsx.writeBuffer().then((data) => {
+    const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    FileSaver.saveAs(blob, `Phrase Frequency ${moment().format('MMDDYY')}.xlsx`);
+  });
 };
 
 export default calculateHandler;
