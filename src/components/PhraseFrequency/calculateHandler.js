@@ -162,7 +162,7 @@ const calculateHandler = (input, proxyText) => {
   ); //* Get headers
   headers.splice(1, 0, 'Length'); //* Add length to second column
 
-  const rows = getRows(_.replace(_.replace(input, / +/g, ' '), /[^\w\s]/gi, proxyText));
+  const rows = getRows(_.replace(input, / +/g, ' '));
   const dataAOO = getDataAOO(headers, rows);
 
   const workbook = new exceljs.Workbook();
