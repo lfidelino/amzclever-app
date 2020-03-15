@@ -6,36 +6,17 @@ const exceljs = require('exceljs');
 const moment = require('moment');
 const FileSaver = require('file-saver');
 
-const formatInput = (input, replaceText, withText) => {
-  let formattedInput = input;
-
-  if (replaceText.trim() !== '') {
-    const replaceTextArr = replaceText.split(' ');
-    _.forEach(replaceTextArr, (replaceChar) => {
-      const newReplaceChar = replaceChar.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-      const regex = new RegExp(`${newReplaceChar}`, 'g');
-      formattedInput = _.replace(formattedInput, regex, withText);
-    });
-  }
-
-  console.log('formatInput -> formattedInput', formattedInput);
-  return formattedInput;
-};
-
-//* Create array of objects data
-// #region
 const getRows = (input) => {
   let rows = input.split('\n'); //* Split input by row
   rows = _.compact(rows); //* Remove empty elements from array, if any
   rows = _.map(rows, (curr) => curr.split('\t')); //* Split every element by column
   rows = _.drop(rows); //* Drop first element from array (headers)
 
-  console.log('getRows -> rows', rows);
   return rows;
 };
 
-const getPhrases = (words) => {
-  const phrases = [];
+const getPhrases = (words, replaceText, withText) => {
+  let phrases = [];
 
   for (let i = 0; i < words.length; i += 1) {
     //* Iterate over each row
@@ -48,11 +29,22 @@ const getPhrases = (words) => {
     }
   }
 
-  console.log('getPhrases -> phrases', phrases);
+  phrases = _.map(phrases, (phrase) => {
+    let formattedPhrase = phrase;
+    if (replaceText.trim() !== '') {
+      const replaceTextArr = replaceText.split(' ');
+      _.forEach(replaceTextArr, (replaceChar) => {
+        const newReplaceChar = replaceChar.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const regex = new RegExp(`${newReplaceChar}`, 'g');
+        formattedPhrase = _.replace(formattedPhrase, regex, withText);
+      });
+    }
+    return formattedPhrase;
+  });
   return phrases;
 };
 
-const getDataAOO = (headers, rows) => {
+const getDataAOO = (headers, rows, replaceText, withText) => {
   const output = [];
 
   _.forEach(rows, (row) => {
@@ -64,7 +56,7 @@ const getDataAOO = (headers, rows) => {
       rowObj[headers[i]] = row[i];
     }
 
-    const phrases = getPhrases(words);
+    const phrases = getPhrases(words, replaceText, withText);
 
     _.forEach(phrases, (phrase) => {
       const index = _.findIndex(output, (curr) => curr[headers[0]] === phrase);
@@ -94,12 +86,9 @@ const getDataAOO = (headers, rows) => {
     });
   });
 
-  console.log('getDataAOO -> output', output);
   return output;
 };
-// #endregion
 
-//* Add rows to sheet
 const addRows = (sheet, dataAOO) => {
   const newSheet = sheet;
   _.forEach(dataAOO, (obj, i) => {
@@ -181,10 +170,8 @@ const calculateHandler = (input, replaceText, withText) => {
   ); //* Get headers
   headers.splice(1, 0, 'Length'); //* Add length to second column
 
-  const formattedInput = formatInput(input, replaceText.trim(), withText.trim());
-
-  const rows = getRows(_.replace(formattedInput, /  +/g, ' '));
-  const dataAOO = getDataAOO(headers, rows);
+  const rows = getRows(_.replace(input, /  +/g, ' '));
+  const dataAOO = getDataAOO(headers, rows, replaceText, withText);
 
   const workbook = new exceljs.Workbook();
   workbook.creator = 'AMZClever';

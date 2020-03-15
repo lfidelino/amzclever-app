@@ -61,7 +61,7 @@ function PhraseFrequency() {
             placement="bottom"
             overlay={(
               <Tooltip id="tooltip-bottom">
-                Value here will replace all instances of previously entered characters
+                Leaving this blank will remove the characters.
               </Tooltip>
             )}
           >
