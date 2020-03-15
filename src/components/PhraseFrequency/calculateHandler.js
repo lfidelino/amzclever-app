@@ -6,6 +6,22 @@ const exceljs = require('exceljs');
 const moment = require('moment');
 const FileSaver = require('file-saver');
 
+const formatInput = (input, replaceText, withText) => {
+  let formattedInput = input;
+
+  if (replaceText.trim() !== '') {
+    const replaceTextArr = replaceText.split(' ');
+    _.forEach(replaceTextArr, (replaceChar) => {
+      const newReplaceChar = replaceChar.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const regex = new RegExp(`${newReplaceChar}`, 'g');
+      formattedInput = _.replace(formattedInput, regex, withText);
+    });
+  }
+
+  console.log('formatInput -> formattedInput', formattedInput);
+  return formattedInput;
+};
+
 //* Create array of objects data
 // #region
 const getRows = (input) => {
@@ -14,6 +30,7 @@ const getRows = (input) => {
   rows = _.map(rows, (curr) => curr.split('\t')); //* Split every element by column
   rows = _.drop(rows); //* Drop first element from array (headers)
 
+  console.log('getRows -> rows', rows);
   return rows;
 };
 
@@ -31,6 +48,7 @@ const getPhrases = (words) => {
     }
   }
 
+  console.log('getPhrases -> phrases', phrases);
   return phrases;
 };
 
@@ -76,6 +94,7 @@ const getDataAOO = (headers, rows) => {
     });
   });
 
+  console.log('getDataAOO -> output', output);
   return output;
 };
 // #endregion
@@ -155,14 +174,16 @@ const formatCells = (sheet) => {
   return newSheet;
 };
 
-const calculateHandler = (input, proxyText) => {
+const calculateHandler = (input, replaceText, withText) => {
   const headers = _.map(
     input.split('\n')[0].split('\t'),
     (header) => header.trim(),
   ); //* Get headers
   headers.splice(1, 0, 'Length'); //* Add length to second column
 
-  const rows = getRows(_.replace(input, / +/g, ' '));
+  const formattedInput = formatInput(input, replaceText.trim(), withText.trim());
+
+  const rows = getRows(_.replace(formattedInput, /  +/g, ' '));
   const dataAOO = getDataAOO(headers, rows);
 
   const workbook = new exceljs.Workbook();

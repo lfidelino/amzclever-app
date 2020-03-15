@@ -6,8 +6,21 @@
   margin-right: 0.5em;
 }
 
-.ProxyText {
-  margin-top: 1em;
+.ReplaceDiv {
+  margin-top: 0.5em;
+}
+
+.ReplaceText {
+  display: inline-block;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+  width: 15em;
+  text-align: center;
+}
+
+.WithText {
+  display: inline-block;
+  margin-left: 0.5em;
   width: 5em;
   text-align: center;
 }

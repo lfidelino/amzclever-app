@@ -3,16 +3,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import Container from 'react-bootstrap/Container';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
-import Overlay from 'react-bootstrap/Overlay';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
 import styles from './PhraseFrequency.module.css';
 import calculateHandler from './calculateHandler';
 
 function PhraseFrequency() {
   const [calculating, setCalculating] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
   const input = useRef();
-  const proxyText = useRef();
+  const replaceText = useRef();
+  const withText = useRef();
+  const defaultReplaceText = '/ \\ ^ $ * + ? ( ) | [ ] { }';
 
   useEffect(() => {
     input.current.focus();
@@ -20,7 +21,7 @@ function PhraseFrequency() {
 
   useEffect(() => {
     if (calculating) {
-      calculateHandler(input.current.value, proxyText.current.value);
+      calculateHandler(input.current.value, replaceText.current.value, withText.current.value);
       console.log();
       setCalculating(false);
     }
@@ -33,27 +34,40 @@ function PhraseFrequency() {
         <Form.Control as="textarea" rows="24" ref={input} />
         <Button
           block
-          onClick={calculating ? null : () => setCalculating(true)}
+          onClick={calculating ? null : () => {
+            if (input.current.value !== '') setCalculating(true);
+          }}
           disabled={calculating}
         >
           <span className={styles.ButtonText}>{calculating ? 'Calculating...' : 'Calculate'}</span>
           <i className="fas fa-calculator" />
         </Button>
-        <Form.Control
-          className={styles.ProxyText}
-          size="sm"
-          type="text"
-          ref={proxyText}
-          onFocus={() => setShowTooltip(true)}
-          onBlur={() => setShowTooltip(false)}
-        />
-        <Overlay target={proxyText} show={showTooltip} placement="left">
-          {(props) => (
-            <Tooltip id="overlay-example" {...props}>
-              Replace special characters with...
-            </Tooltip>
-          )}
-        </Overlay>
+        <div className={styles.ReplaceDiv}>
+          Replace
+          <OverlayTrigger
+            placement="bottom"
+            overlay={<Tooltip id="tooltip-bottom">Separate characters with a space.</Tooltip>}
+          >
+            <Form.Control
+              className={styles.ReplaceText}
+              size="sm"
+              type="text"
+              ref={replaceText}
+              defaultValue={defaultReplaceText}
+            />
+          </OverlayTrigger>
+          with
+          <OverlayTrigger
+            placement="bottom"
+            overlay={(
+              <Tooltip id="tooltip-bottom">
+                Value here will replace all instances of previously entered characters
+              </Tooltip>
+            )}
+          >
+            <Form.Control className={styles.WithText} size="sm" type="text" ref={withText} />
+          </OverlayTrigger>
+        </div>
       </Form.Group>
     </Container>
   );
